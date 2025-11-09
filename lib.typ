@@ -1,4 +1,5 @@
 // R2 sequence from https://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
+// Generates points withing $[0, 1]^2$
 #let r2_sequence(i) = {
   let g = 1.32471795724474602596
   let a1 = 1.0/g
@@ -8,11 +9,11 @@
   (x, y)
 }
 
-#let generate_random_points(n, seed: 0., generator: r2_sequence) = {
+#let generate_random_points(n, generator: r2_sequence) = {
   let points = ()
   let i = 0
   while i < n {
-    points.push(generator(i + seed))
+    points.push(generator(i))
     i += 1
   }
   points
@@ -104,11 +105,26 @@
 }
 
 #let generate_delaunay(points) = {
+  if points.len() == 0 {
+    return ()
+  }
+  let (tmp_x, tmp_y) = points.at(0)
+  let (min_x, min_y, max_x, max_y) = points.fold((tmp_x, tmp_y, tmp_x, tmp_y), (acc, x) =>
+    {
+      let (min_x, min_y, max_x, max_y) = acc;
+      let (px, py) = x
+      (
+        calc.min(min_x, px),
+        calc.min(min_y, py),
+        calc.max(max_x, px),
+        calc.max(max_y, py),
+      )
+    })
   let vertices = (
-    (0., 0.),
-    (1., 0.),
-    (1., 1.),
-    (0., 1.),
+    (min_x - 10., min_y - 10.),
+    (max_x - 10., min_y - 10.),
+    (max_x + 10., max_y + 10.),
+    (min_x + 10., max_y + 10.),
   )
   let faces = (
     (0, 1, 2),
