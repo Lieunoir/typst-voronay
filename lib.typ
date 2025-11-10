@@ -98,10 +98,11 @@
 }*/
 
 
+
+// No input checks (degenerate or aligned vertices)
 #let is_in_circle(p, triangle) = {
   let (p1, p2, p3) = triangle
   // if 3 of them are inf, true
-  // if 2 of them are
   // if 1 of them, check on which size of th triangle the point is
   // ie if p, p2, p3 is cw or ccw
   let (ax, ay) = p1
@@ -170,6 +171,7 @@
   for p in points {
     let bad_f = ()
     let j = 0
+
     for (f1, f2, f3) in faces {
       let v1 = get_vertex(f1)
       let v2 = get_vertex(f2)
@@ -263,38 +265,20 @@
   let d_edges = ()
   let edges = ()
   for (i, (f1, f2, f3)) in faces.enumerate() {
-    let e1 = (f1, f2)
-    let e2 = (f2, f3)
-    let e3 = (f3, f1)
-
-    let found_1 = edges.position(
-      ((f22, f21, f)) => (f22 == f2 and f21 == f1)
-    )
-    if found_1 != none {
-      let (_, _, f) = edges.remove(found_1)
-      d_edges.push((i, f))
+    edges.push((calc.min(f1, f2), calc.max(f1, f2), i))
+    edges.push((calc.min(f2, f3), calc.max(f2, f3), i))
+    edges.push((calc.min(f3, f1), calc.max(f3, f1), i))
+  }
+  let edges = edges.sorted(key: ((e_1, e_2, _)) => (e_1, e_2))
+  let i = 0
+  while i+1 < edges.len() {
+    let (e11, e12, f1) = edges.at(i)
+    let (e21, e22, f2) = edges.at(i+1)
+    if e11 == e21 and e12 == e22 {
+      d_edges.push((f1, f2))
+      i += 2
     } else {
-      edges.push((f1, f2, i))
-    }
-
-    let found_2 = edges.position(
-      ((f23, f22, f)) => (f23 == f3 and f22 == f2)
-    )
-    if found_2 != none {
-      let (_, _, f) = edges.remove(found_2)
-      d_edges.push((i, f))
-    } else {
-      edges.push((f2, f3, i))
-    }
-
-    let found_3 = edges.position(
-      ((f21, f23, f)) => (f21 == f1 and f23 == f3)
-    )
-    if found_3 != none {
-      let (_, _, f) = edges.remove(found_3)
-      d_edges.push((i, f))
-    } else {
-      edges.push((f3, f1, i))
+      i += 1
     }
   }
   d_edges
