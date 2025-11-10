@@ -9,12 +9,29 @@
 // 800 => 5920ms
 // 400 => 731ms
 // 200 => 182ms
+//
+// delaunay :
+// 16000 -> 393k
+// 800 -> 120k
+// 400 -> 34k
+// 200 -> 10k
+// 100 -> 3k
+//
+// first conflict :
+// 800 -> 117k
+// 400 -> 33k
+// 200 -> 9k
 
-//#let points = generate_random_points(200)
-#let points = generate_random_points(200)
-#let new_points = points.map(p => (p.at(0), 3. * p.at(1)))
-#let faces = generate_delaunay(new_points)
-#let new_p = get_circumcenters(new_points, faces)
+#let points = generate_random_points(800)
+#let points = points.map(p => (p.at(0), 3. * p.at(1)))
+#let points = hilbert_point_sort(points)
+#let (tot_iter, faces) = generate_delaunay(points)
+
+#tot_iter
+
+#pagebreak()
+
+#let new_p = get_circumcenters(points, faces)
 #let edges = get_dual_edges(faces)
 
 #let size = 200pt
@@ -22,9 +39,9 @@
   #for (f1, f2, f3) in faces {
     let c1 = blue
     let c2 = yellow
-    let (v1x, v1y) = new_points.at(f1)
-    let (v2x, v2y) = new_points.at(f2)
-    let (v3x, v3y) = new_points.at(f3)
+    let (v1x, v1y) = points.at(f1)
+    let (v2x, v2y) = points.at(f2)
+    let (v3x, v3y) = points.at(f3)
     let bx = (v1x + v2x + v3x) / 3.
     let by = (v1y + v2y + v3y) / 3.
     let w = (v1x + v1y + v2x + v2y + v3x + v3y) / 6.
@@ -41,7 +58,6 @@
         fill: c,
       ))
   }
-  /*
   #for (e1, e2) in edges {
     let (v1x, v1y) = new_p.at(e1)
     let (v2x, v2y) = new_p.at(e2)
@@ -53,7 +69,7 @@
         (v2x * 125%, v2y * 125%),
         //stroke: gradient.linear(relative: "parent", black, white)
       ))
-  }*/
+  }
 
   /*
   #for (x, y) in points {

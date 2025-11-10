@@ -24,13 +24,7 @@
 
 #let generate_random_points(n, generator: r2_sequence) = {
 //#let generate_random_points(n, generator: halton_2_3) = {
-  let points = ()
-  let i = 0
-  while i < n {
-    points.push(generator(i))
-    i += 1
-  }
-  points
+  range(n).map(generator)
 }
 
 #let det(p1, p2, p3) = {
@@ -163,6 +157,50 @@
   }
 }
 
+#let hilbert_point_sort(points) = {
+  let (min_x, min_y, max_x, max_y) = points.fold(
+    (float.inf, float.inf, -float.inf, -float.inf),
+    (acc, val) => {
+      let (min_x, min_y, max_x, max_y) = acc
+      let (x, y) = val
+      (
+        calc.min(min_x, x),
+        calc.min(min_y, y),
+        calc.max(min_x, x),
+        calc.max(min_y, y),
+      )
+    }
+  )
+  let width = max_x - min_x
+  let height = max_y - min_y
+  let n = calc.ceil(0.5 * calc.log(points.len(), base: 2.))
+  points.map(((xi, yi)) => {
+    let x = calc.floor((xi - min_x) / width * n)
+    let y = calc.floor((yi - min_y) / height * n)
+    let rx = 0
+    let ry = 0
+    let s = calc.div-euclid(n, 2)
+    let d = 0
+    while s > 0 {
+      rx = int(x.bit-and(s) > 0)
+      ry = int(y.bit-and(s) > 0)
+      d += s * s * ((3 * rx).bit-xor(ry))
+      s = calc.div-euclid(s, 2)
+      if ry == 0 {
+        if rx == 1 {
+          x = n - 1 - x;
+          y = n - 1 - y;
+        }
+        //Swap x and y
+        let t  = x;
+        x = y;
+        y = t;
+      }
+    }
+    (xi, yi, d)
+  }).sorted(key: ((_, _, d)) => d).map(((x, y, _)) => (x, y))
+}
+
 #let generate_delaunay(points) = {
   if points.len() == 0 {
     return ()
@@ -197,46 +235,18 @@
   let tot_iter = 0
 
   for p in points {
-    let guess_depth = calc.floor(calc.log(faces.len(), base: 2.))
-    let (_, first_guess) = faces.slice(0, n_f).map(f => get_circumcenter(get_vertex, f)).zip(range(guess_depth)).fold((10e7, 0), (acc, cur) => {
-      let (center, cur_index) = cur
-      let (x1, y1) = p
-      let (x2, y2) = center
-      let distance = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
-      let (best_dist, best_index) = acc
-      if distance < best_dist {
-        (distance, cur_index)
-      } else {
-        acc
-      }
-    })
 
-    let bad_f = ()
-    let to_explore_2 = ()
-    let to_explore = (first_guess, )
-    while true {
+    let i = n_f - 1
+    while not is_in_circle(p, get_vertex, faces.at(i)) {
       tot_iter += 1
-      let cur_f = to_explore.pop()
-      explored.at(cur_f) = n
-      if is_in_circle(p, get_vertex, faces.at(cur_f)) {
-        bad_f.push(cur_f)
-        to_explore_2.push(cur_f)
-        break;
-      }
-      let (f1, f2, f3) = edges.at(cur_f)
-      if f1 != -1 and explored.at(f1) != n {
-        to_explore.push(f1)
-      }
-      if f2 != -1 and explored.at(f2) != n {
-        to_explore.push(f2)
-      }
-      if f3 != -1 and explored.at(f3) != n {
-        to_explore.push(f3)
-      }
+      i -= 1
     }
+    explored.at(i) = n
+    let to_explore_2 = (i,)
+    let bad_f = (i,)
 
     while to_explore_2.len() > 0 {
-      tot_iter += 1
+      //tot_iter += 1
       let cur_f = to_explore_2.pop()
       let (f1, f2, f3) = edges.at(cur_f)
       if f1 != -1 and is_in_circle(p, get_vertex, faces.at(f1)) and explored.at(f1) != n {
