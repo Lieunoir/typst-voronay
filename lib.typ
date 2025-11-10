@@ -127,35 +127,19 @@
   if points.len() == 0 {
     return ()
   }
-  let (tmp_x, tmp_y) = points.at(0)
-  let (min_x, min_y, max_x, max_y) = points.fold((tmp_x, tmp_y, tmp_x, tmp_y), (acc, x) =>
-    {
-      let (min_x, min_y, max_x, max_y) = acc;
-      let (px, py) = x
-      (
-        calc.min(min_x, px),
-        calc.min(min_y, py),
-        calc.max(max_x, px),
-        calc.max(max_y, py),
-      )
-    })
-  let width = max_x - min_x
-  let height = max_y - min_y
   let vertices = (
     (-10e7, -10e7),
     (10e7, -10e7),
     (-10e7, 10e7),
-    //(min_x - 10., min_y - 10.),
-    //(min_x + 2. * width, min_y - 10.),
-    //(min_x - 10., min_y + 2. * height),
-    //(min_x - 10., min_y - 10.),
-    //(max_x - 10., min_y - 10.),
-    //(max_x + 10., max_y + 10.),
-    //(min_x + 10., max_y + 10.),
   )
   let faces = (
     (0, 1, 2),
-    //(0, 2, 3),
+  )
+  let edges = (
+    (-1, -1, -1),
+  )
+  let edges_i = (
+    (-1, -1, -1),
   )
 
   let n_v = vertices.len()
@@ -181,58 +165,62 @@
       }
       j += 1
     }
+    let bad_f = bad_f.sorted()
 
     let polygon = ()
     for f_i in bad_f {
-      let (f1, f2, f3) = faces.at(f_i)
-      let e_1 = (f1, f2)
-      let e_2 = (f2, f3)
-      let e_3 = (f3, f1)
-      let j = 0
-      let add_1 = true
-      let add_2 = true
-      let add_3 = true
-      let m = polygon.len()
-      while j < m {
-        let e = polygon.at(j)
-        let matched = false
-        if e == (f2, f1) {
-          matched = true
-          add_1 = false
-        } else if e == (f3, f2) {
-          matched = true
-          add_2 = false
-        } else if e == (f1, f3) {
-          matched = true
-          add_3 = false
-        }
-
-        if matched {
-          let _ = polygon.remove(j)
-          m -= 1
-        } else {
-          j += 1
-        }
+      let (v1, v2, v3) = faces.at(f_i)
+      let (f1, f2, f3) = edges.at(f_i)
+      let (f1_i, f2_i, f3_i) = edges_i.at(f_i)
+      if not bad_f.contains(f1) {
+        polygon.push((v1, v2, f1, f1_i))
       }
-      if add_1 {
-        polygon.push(e_1)
+      if not bad_f.contains(f2) {
+        polygon.push((v2, v3, f2, f2_i))
       }
-      if add_2 {
-        polygon.push(e_2)
-      }
-      if add_3 {
-        polygon.push(e_3)
+      if not bad_f.contains(f3) {
+        polygon.push((v3, v1, f3, f3_i))
       }
     }
 
-    let cur_r = 0
-    for f in bad_f {
-      let _ = faces.remove(f - cur_r)
-      cur_r += 1
+    let n_new = polygon.len()
+    let i = 0
+    while i < n_new {
+      let (_, e2, _, _) = polygon.at(i)
+      let j = i + 2
+      while j < n_new {
+        let p1 = polygon.at(j)
+        let (e1, _, _, _) = p1
+        if e1 == e2 {
+          let p2 = polygon.at(i + 1)
+          polygon.at(i + 1) = p1
+          polygon.at(j) = p2
+          break;
+        }
+        j += 1
+      }
+      i += 1
     }
 
-    for (e1, e2) in polygon {
-      faces.push((n, e1, e2))
+    while bad_f.len() < polygon.len() {
+      faces.push((-1, -1, -1))
+      edges.push((-1, -1, -1))
+      edges_i.push((-1, -1, -1))
+      bad_f.push(faces.len() - 1)
+    }
+
+    let prev_f = bad_f.last()
+    bad_f.push(bad_f.first())
+
+    for (i, ((e1, e2, opp_f, opp_f_i), (f, next_f))) in polygon.zip(bad_f.windows(2)).enumerate() {
+      faces.at(f) = (n, e1, e2)
+      edges.at(f) = (prev_f, opp_f, next_f)
+      edges_i.at(f) = (2, opp_f_i, 0)
+      if opp_f >= 0 {
+        edges.at(opp_f).at(opp_f_i) = f
+        edges_i.at(opp_f).at(opp_f_i) = 1
+      }
+      prev_f = f
     }
     n += 1
   }
