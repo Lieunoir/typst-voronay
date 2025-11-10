@@ -100,8 +100,11 @@
 
 
 // No input checks (degenerate or aligned vertices)
-#let is_in_circle(p, triangle) = {
-  let (p1, p2, p3) = triangle
+#let is_in_circle(p, get_vertex, triangle) = {
+  let (f1, f2, f3) = triangle
+  let p1 = get_vertex(f1)
+  let p2 = get_vertex(f2)
+  let p3 = get_vertex(f3)
   // if 3 of them are inf, true
   // if 1 of them, check on which size of th triangle the point is
   // ie if p, p2, p3 is cw or ccw
@@ -123,6 +126,43 @@
   ) > 0
 }
 
+#let get_circumcenter(get_vertex, face) = {
+  let (f1, f2, f3) = face
+  let (p1x, p1y) = get_vertex(f1)
+  let (p2x, p2y) = get_vertex(f2)
+  let (p3x, p3y) = get_vertex(f3)
+  let d = 2 * (p1x * (p2y - p3y) + p2x * (p3y - p1y) + p3x * (p1y - p2y))
+  let ux = ((p1x * p1x + p1y * p1y) * (p2y - p3y) + (p2x * p2x + p2y * p2y) * (p3y - p1y) + (p3x * p3x + p3y * p3y) * (p1y - p2y)) / d
+  let uy = ((p1x * p1x + p1y * p1y) * (p3x - p2x) + (p2x * p2x + p2y * p2y) * (p1x - p3x) + (p3x * p3x + p3y * p3y) * (p2x - p1x)) / d
+  (ux, uy)
+}
+
+#let get_circumcenters(vertices, faces) = {
+  let get_vertex(i) = vertices.at(i)
+  faces.map(f => get_circumcenter(get_vertex, f))
+}
+
+#let binary_search(val, arr) = {
+  let n = arr.len()
+  if n == 0 {
+   return false
+  } else if n == 1 {
+    if arr.at(0) == val {
+      return true
+    } else {
+      return false
+    }
+  } else {
+    let mid = calc.div-euclid(n, 2)
+    let res = if arr.at(mid) > val {
+      binary_search(val, arr.slice(0, mid))
+    } else {
+      binary_search(val, arr.slice(mid))
+    }
+    return res
+  }
+}
+
 #let generate_delaunay(points) = {
   if points.len() == 0 {
     return ()
@@ -134,16 +174,18 @@
   )
   let faces = (
     (0, 1, 2),
-  )
+  ) + range(2 * points.len()).map(it => (-1, -1, -1))
   let edges = (
     (-1, -1, -1),
-  )
+  ) + range(2 * points.len()).map(it => (-1, -1, -1))
   let edges_i = (
     (-1, -1, -1),
-  )
+  ) + range(2 * points.len()).map(it => (-1, -1, -1))
 
+  let explored = faces.map(it => 0)
   let n_v = vertices.len()
   let n = vertices.len()
+  let n_f = 1
   let get_vertex(i) = {
     if i >= n_v {
       points.at(i - n_v)
@@ -152,19 +194,68 @@
     }
   }
 
-  for p in points {
-    let bad_f = ()
-    let j = 0
+  let tot_iter = 0
 
-    for (f1, f2, f3) in faces {
-      let v1 = get_vertex(f1)
-      let v2 = get_vertex(f2)
-      let v3 = get_vertex(f3)
-      if is_in_circle(p, (v1, v2, v3)) {
-        bad_f.push(j)
+  for p in points {
+    let guess_depth = calc.floor(calc.log(faces.len(), base: 2.))
+    let (_, first_guess) = faces.slice(0, n_f).map(f => get_circumcenter(get_vertex, f)).zip(range(guess_depth)).fold((10e7, 0), (acc, cur) => {
+      let (center, cur_index) = cur
+      let (x1, y1) = p
+      let (x2, y2) = center
+      let distance = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+      let (best_dist, best_index) = acc
+      if distance < best_dist {
+        (distance, cur_index)
+      } else {
+        acc
       }
-      j += 1
+    })
+
+    let bad_f = ()
+    let to_explore_2 = ()
+    let to_explore = (first_guess, )
+    while true {
+      tot_iter += 1
+      let cur_f = to_explore.pop()
+      explored.at(cur_f) = n
+      if is_in_circle(p, get_vertex, faces.at(cur_f)) {
+        bad_f.push(cur_f)
+        to_explore_2.push(cur_f)
+        break;
+      }
+      let (f1, f2, f3) = edges.at(cur_f)
+      if f1 != -1 and explored.at(f1) != n {
+        to_explore.push(f1)
+      }
+      if f2 != -1 and explored.at(f2) != n {
+        to_explore.push(f2)
+      }
+      if f3 != -1 and explored.at(f3) != n {
+        to_explore.push(f3)
+      }
     }
+
+    while to_explore_2.len() > 0 {
+      tot_iter += 1
+      let cur_f = to_explore_2.pop()
+      let (f1, f2, f3) = edges.at(cur_f)
+      if f1 != -1 and is_in_circle(p, get_vertex, faces.at(f1)) and explored.at(f1) != n {
+        bad_f.push(f1)
+        to_explore_2.push(f1)
+        explored.at(f1) = n
+      }
+      if f2 != -1 and is_in_circle(p, get_vertex, faces.at(f2)) and explored.at(f2) != n {
+        bad_f.push(f2)
+        to_explore_2.push(f2)
+        explored.at(f2) = n
+      }
+      if f3 != -1 and is_in_circle(p, get_vertex, faces.at(f3)) and explored.at(f3) != n {
+        bad_f.push(f3)
+        to_explore_2.push(f3)
+        explored.at(f3) = n
+      }
+    }
+    //let bad_f = find_bad_faces(p, get_vertex, faces.slice(0, n_f), edges, explored, n)
     let bad_f = bad_f.sorted()
 
     let polygon = ()
@@ -172,13 +263,16 @@
       let (v1, v2, v3) = faces.at(f_i)
       let (f1, f2, f3) = edges.at(f_i)
       let (f1_i, f2_i, f3_i) = edges_i.at(f_i)
+      //if not binary_search(f1, bad_f) {
       if not bad_f.contains(f1) {
         polygon.push((v1, v2, f1, f1_i))
       }
       if not bad_f.contains(f2) {
+      //if not binary_search(f2, bad_f) {
         polygon.push((v2, v3, f2, f2_i))
       }
       if not bad_f.contains(f3) {
+      //if not binary_search(f3, bad_f) {
         polygon.push((v3, v1, f3, f3_i))
       }
     }
@@ -202,15 +296,8 @@
       i += 1
     }
 
-    while bad_f.len() < polygon.len() {
-      faces.push((-1, -1, -1))
-      edges.push((-1, -1, -1))
-      edges_i.push((-1, -1, -1))
-      bad_f.push(faces.len() - 1)
-    }
-
-    let prev_f = bad_f.last()
-    bad_f.push(bad_f.first())
+    bad_f = bad_f + (n_f, n_f + 1, bad_f.first())
+    let prev_f = n_f + 1
 
     for (i, ((e1, e2, opp_f, opp_f_i), (f, next_f))) in polygon.zip(bad_f.windows(2)).enumerate() {
       faces.at(f) = (n, e1, e2)
@@ -222,31 +309,15 @@
       }
       prev_f = f
     }
+
+    n_f += 2
     n += 1
   }
-  let good_f = ()
-  for (f1, f2, f3) in faces {
-    if f1 >= n_v and f2 >= n_v and f3 >= n_v {
-      good_f.push((
-        f1 - n_v,
-        f2 - n_v,
-        f3 - n_v,
-      ))
-    }
-  }
-  good_f
-}
 
-#let get_circumcenters(vertices, faces) = {
-  faces.map( ((f1, f2, f3)) => {
-    let (p1x, p1y) = vertices.at(f1)
-    let (p2x, p2y) = vertices.at(f2)
-    let (p3x, p3y) = vertices.at(f3)
-    let d = 2 * (p1x * (p2y - p3y) + p2x * (p3y - p1y) + p3x * (p1y - p2y))
-    let ux = ((p1x * p1x + p1y * p1y) * (p2y - p3y) + (p2x * p2x + p2y * p2y) * (p3y - p1y) + (p3x * p3x + p3y * p3y) * (p1y - p2y)) / d
-    let uy = ((p1x * p1x + p1y * p1y) * (p3x - p2x) + (p2x * p2x + p2y * p2y) * (p1x - p3x) + (p3x * p3x + p3y * p3y) * (p2x - p1x)) / d
-    (ux, uy)
-  })
+  let good_f = faces.filter(((f1, f2, f3)) =>
+    f1 >= n_v and f2 >= n_v and f3 >= n_v
+  ).map(((f1, f2, f3)) => (f1 - n_v, f2 - n_v, f3 - n_v))
+  (tot_iter, good_f)
 }
 
 #let get_dual_edges(faces) = {
