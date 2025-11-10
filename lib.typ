@@ -9,7 +9,21 @@
   (x, y)
 }
 
+#let halton(i, base) = {
+  let x = 1.0 / base;
+  let v = 0.0;
+  while (i > 0) {
+    v += x * calc.rem(i, base);
+    i = calc.div-euclid(i,  base);
+    x /= base;
+  }
+  v
+}
+
+#let halton_2_3(i) = (halton(i, 2), halton(i, 3))
+
 #let generate_random_points(n, generator: r2_sequence) = {
+//#let generate_random_points(n, generator: halton_2_3) = {
   let points = ()
   let i = 0
   while i < n {
@@ -86,6 +100,10 @@
 
 #let is_in_circle(p, triangle) = {
   let (p1, p2, p3) = triangle
+  // if 3 of them are inf, true
+  // if 2 of them are
+  // if 1 of them, check on which size of th triangle the point is
+  // ie if p, p2, p3 is cw or ccw
   let (ax, ay) = p1
   let (bx, by) = p2
   let (cx, cy) = p3
@@ -120,26 +138,35 @@
         calc.max(max_y, py),
       )
     })
+  let width = max_x - min_x
+  let height = max_y - min_y
   let vertices = (
-    (min_x - 10., min_y - 10.),
-    (max_x - 10., min_y - 10.),
-    (max_x + 10., max_y + 10.),
-    (min_x + 10., max_y + 10.),
+    (-10e7, -10e7),
+    (10e7, -10e7),
+    (-10e7, 10e7),
+    //(min_x - 10., min_y - 10.),
+    //(min_x + 2. * width, min_y - 10.),
+    //(min_x - 10., min_y + 2. * height),
+    //(min_x - 10., min_y - 10.),
+    //(max_x - 10., min_y - 10.),
+    //(max_x + 10., max_y + 10.),
+    //(min_x + 10., max_y + 10.),
   )
   let faces = (
     (0, 1, 2),
-    (0, 2, 3),
+    //(0, 2, 3),
   )
 
+  let n_v = vertices.len()
+  let n = vertices.len()
   let get_vertex(i) = {
-    if i >= 4 {
-      points.at(i - 4)
+    if i >= n_v {
+      points.at(i - n_v)
     } else {
       vertices.at(i)
     }
   }
 
-  let n = 4
   for p in points {
     let bad_f = ()
     let j = 0
@@ -209,11 +236,11 @@
   }
   let good_f = ()
   for (f1, f2, f3) in faces {
-    if f1 >= 4 and f2 >= 4 and f3 >= 4 {
+    if f1 >= n_v and f2 >= n_v and f3 >= n_v {
       good_f.push((
-        f1 - 4,
-        f2 - 4,
-        f3 - 4,
+        f1 - n_v,
+        f2 - n_v,
+        f3 - n_v,
       ))
     }
   }

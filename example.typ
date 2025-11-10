@@ -12,10 +12,10 @@
 
 //#let points = generate_random_points(200)
 #let points = generate_random_points(200)
-#let new_points = points.map(p => (p.at(0), 2. * p.at(1)))
+#let new_points = points.map(p => (p.at(0), 3. * p.at(1)))
 #let faces = generate_delaunay(new_points)
-//#let new_p = get_circumcenters(new_points, faces)
-//#let edges = get_dual_edges(faces)
+#let new_p = get_circumcenters(new_points, faces)
+#let edges = get_dual_edges(faces)
 
 #let size = 200pt
 #box(width: size, height: size, clip: false)[
@@ -53,8 +53,7 @@
         (v2x * 125%, v2y * 125%),
         //stroke: gradient.linear(relative: "parent", black, white)
       ))
-  }
-  */
+  }*/
 
   /*
   #for (x, y) in points {
