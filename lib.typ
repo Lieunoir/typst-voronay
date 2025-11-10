@@ -177,15 +177,14 @@
   points.map(((xi, yi)) => {
     let x = calc.floor((xi - min_x) / width * n)
     let y = calc.floor((yi - min_y) / height * n)
-    let rx = 0
-    let ry = 0
-    let s = calc.div-euclid(n, 2)
+    let n = calc.pow(2, n)
+    let s = n.bit-rshift(1)
     let d = 0
     while s > 0 {
-      rx = int(x.bit-and(s) > 0)
-      ry = int(y.bit-and(s) > 0)
+      let rx = int(x.bit-and(s) > 0)
+      let ry = int(y.bit-and(s) > 0)
       d += s * s * ((3 * rx).bit-xor(ry))
-      s = calc.div-euclid(s, 2)
+      s = s.bit-rshift(1)
       if ry == 0 {
         if rx == 1 {
           x = n - 1 - x;
