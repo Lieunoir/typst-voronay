@@ -8,6 +8,7 @@
 #box(width: width, height: height, {
   // Generate points
   let points = range(100).map(halton-2-3).map(((x, y)) => (x, y * ratio))
+  // Sorts the point along a Hilbert curve (significantly improves the performance of the triangulation)
   let points = hilbert-point-sort(points)
   // Generate Delaunay triangulation
   let faces = delaunay-triangulate(points)
