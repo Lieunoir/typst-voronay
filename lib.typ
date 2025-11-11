@@ -93,13 +93,13 @@
   }).sorted(key: ((_, _, d)) => d).map(((x, y, _)) => (x, y))
 }
 
-/// Generates a Delaunay triangulation of some points
+/// Computes the Delaunay triangulation of some points
 ///
 /// Parameters :
 /// - `points` : vertices of the triangulation, as an array of arrays of len 2
 ///
 /// Returns : faces of the triangulation, as an array of arrays len 3 of indices
-#let generate-delaunay(points) = {
+#let delaunay-triangulate(points) = {
   if points.len() == 0 {
     return ()
   }
@@ -228,7 +228,7 @@
   good_f
 }
 
-/// Generates the nodes of the dual of a triangulation
+/// Computes the nodes of the dual of a triangulation
 ///
 /// Parameters :
 /// - `vertices` : vertices of the triangulation
@@ -239,7 +239,7 @@
   faces.map(f => utils.get-circumcenter(i => vertices.at(i), f))
 }
 
-/// Generates the edges of the dual of a triangulation
+/// Computes the edges of the dual of a triangulation
 ///
 /// Parameters :
 /// - `faces` : faces of the triangulation

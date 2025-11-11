@@ -16,14 +16,14 @@ The source of this example can be found [here](https://github.com/Lieunoir/typst
 // Generate points
 #let points = range(100).map(r2_sequence)
 #let points = hilbert-point-sort(points)
-// Generate Delaunay triangulation
-#let faces = generate-delaunay(points)
+// Compute the Delaunay triangulation
+#let faces = delaunay-triangulate(points)
 
 // Compute the triangulation dual (the Voronoi diagram)
 #let dual_vertices = get-circumcenters(points, faces)
 #let dual_edges = get-dual-edges(faces)
 
-// You can draw from that now !
+// Draw the triangulation and Voronoi diagram...
 ```
 
 ### Noise generation
