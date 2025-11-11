@@ -20,8 +20,8 @@ The source of this example can be found [here](https://github.com/Lieunoir/typst
 #let faces = delaunay-triangulate(points)
 
 // Compute the triangulation dual (the Voronoi diagram)
-#let dual_vertices = get-circumcenters(points, faces)
-#let dual_edges = get-dual-edges(faces)
+#let dual-vertices = get-circumcenters(points, faces)
+#let dual-edges = get-dual-edges(faces)
 
 // Draw the triangulation and Voronoi diagram...
 ```
